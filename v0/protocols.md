@@ -40,6 +40,8 @@ In our codebase, a `CfOperation` is a class that specifies a commitment type, in
 
 Assume there exists a multisig shared by two parties, Alice and Bob.
 
+R.e. limitations of the state stored in the multisig - am I remembering correctly that it can store any sort of assets (including NFTs!) and that the only limits on it (currently) are to do with applying more intricate payout conditions (i.e., max payout for certain applications)?
+
 The state of our state channel looks like this (note everything above the line is "on-chain" and everything below the line is "off-chain"):
 
 ![multisig](./img/multisig.png)
@@ -53,6 +55,8 @@ This is a list of criteria for proposed protocol designs, i.e., predicates that 
 ### One round trip communication
 
 In a 2-party channel, 2 messages suffice to safely change the counterfactual state of the GSC
+
+"GSC" = "Generalized state channel?"
 
 - to install an application.
 - to uninstall an application.
@@ -68,6 +72,8 @@ The total size of messages that we need to exchange to do the following has a co
 
 Note: this criteria does not preclude a "cleanup phase" following the one round trip
 
+Sidenote/ just curious: do we know the O complexity of the handshake yet with respect to # of parties involved? 
+
 ### O(1) response
 
 It is possible to arrive at a state where any stale-state-griefing attack can be responded to with a single transaction of constant size, in particular, independent of number of active or historical apps.
@@ -77,6 +83,8 @@ It is possible to arrive at a state where any stale-state-griefing attack can be
 ### Setup
 
 The very first protocol every state channel must run is the Setup Protocol. As the name suggests, its purpose is to setup the counterfactual state so that later protocols can execute properly. Specifically, it exchanges a commitment allowing a special type of application to withdraw funds from the multisig. We call this application the Free Balance contract, representating the available funds for any new application to be installed into the state channel.
+
+For clarification: is the "Free Balance contract" just a way of talking about the lateset (off-chain) state of the multisig, or is it a contract in its own right (counterfactually) instantiated on top of the multisig? I'd assumed the former, but the language here seems to imply the later. And if the later, what's the motivation behind this? 
 
 Completing the Setup Protocol transitions the counterfactual state to:
 
@@ -131,12 +139,15 @@ Running the install protocol to play a game of Tic-Tac-Toe where Alice and Bob b
 
 The funds available in the free balance decrease and the funds committed to the tic-tac-toe application increase by the corresponding amount.
 
+If a counterfactual-complient app contract happens to already be on-chain (it was deployed by its creators, it was already used in an old dispute, etc.), could users install and play on top of it? This way, there's no risk of having to re-deploy (gas cost, etc.) in the case of arbitration.     
+
 ### Commitment
 
 Let `c_1`, `c_2` be the amount that parties 1 and 2 wish to contribute towards the application. The commitment
 
 - updates the free balance state to one where party 1's balance is reduced by `c_1` and party 2's balance is reduced by `c_2`.
 - sets the nonce registry entry to 1.
+Just to be sure, is this step generalizable to "increment the nonce registry entry by 1"?  
 - calls `executeAppConditionalTransaction` with a limit of `c_1 + c_2`.
 
 ### Handshake
@@ -366,6 +377,8 @@ The lifecycle of an application completes when it reaches some type of end or "f
 
 Now, both parties could simply broadcast the application on chain, wait the dispute period, and then broadcast the execution of the Conditional Transfer, thereby paying out the funds on chain. A better solution, however, is to transfer the funds controlled by the application back to the Free Balance contract off chain, so that they could be reused for other applications.
 
+ Is it safe to say that after an application is installed, the only time funds are transfered back to Free Balance is at the uninstallation step? (I'm wondering if any sort of "splice-out" functionality could be supported, where some funds are brought out to "settle" back in Free Balance while the app stays installed. I'm not sure that there's any case where this would be desirable.)
+
 Using our Tic-Tac-Toe example, imagine Alice made the final winning move, declaring X the winner. If Alice runs the Uninstall Protocol, then the Counterfactual state transitions to
 
 ![uninstall](./img/uninstall.png)
@@ -374,6 +387,8 @@ Notice the two operations here:
 
 - set a new state on the Free Balance. Alice's balance in the Free Balance object was incremented by 2 ETH, repurposing the funds once owned by the Tic-Tac-Toe application.
 - set a new nonce on the Nonce Registry. As a result, the Conditional Transfer pointing at Tic-Tac-Toe was invalidated, because we changed its associated entry in the NonceRegistry to 2.
+
+Trying to grasp why the nonce registry is necessary at all. Devil's advocate: shouldn't the nonce of the Free Balance app be enough? We know the Free Balance nonce at which our Tic Tac Toe game was installed, so the why not use the Free balance nonce at which it's uninstalled as proof of invalidation?(I'm guessing the answer involves opening the door for parallel use of multiple apps, but I can't quite work it out.) 
 
 Specifically, when we exchange commitments on the Conditional Transfer in the Install Protocol, we are exchanging signatures allowing us to execute a Conditional Transfer if and only if the nonce equals 1. _If the Nonce is ever not 1_, then the conditional transfer will fail, as desired in the Uninstall Protocol.
 

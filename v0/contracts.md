@@ -8,6 +8,8 @@ A multisignature wallet is the only required on-chain component for a state chan
 
 2. Hash-bashed replay protection as opposed to nonce-based.
 
+Curious about the trade-offs here (may need to read up on the topic more).
+
 3. Supports n-of-n unanimous consent.
 
 4. Deterministic signature verification that does _not_ use the on-chain address of the contract.

@@ -34,6 +34,8 @@ We don’t want to put anything on the chain that doesn’t need to be. In our d
 
 We want to achieve a level of privacy where state channel operations are indistinguishable from other common types of on-chain activities. Using a state channel should not reveal any information about the applications that are being used, the state being used within them, or even the fact that a state channel is being used at all. To achieve this property, we assume that the on-chain component is a generic multisignature wallet which looks the same as any other multisignature wallet on Ethereum.
 
+Maybe after "indistinguishable from other common types of on-chain activities" add in the caveat, `in the cases where there are no disputes (which we can reasonably expect will be the vast majority of cases)` Unless there's some way to achieve this privacy even in dispute cases...?
+
 ### Ease-of-use
 
 We want channels that can be easily incorporated into new applications without the requirement for those developers to also be state channel experts. For this property we have defined an abstraction for state channel applications that we call "Apps". These "Apps" are simple stateless contracts which just define the state machine for an application including valid transitions and turn-taking logic. We restrict the kinds of applications that are written to be the kinds that fit within the [limitations](#limitations) of state channels.
